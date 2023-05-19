@@ -1,0 +1,63 @@
+{
+  "Monoliths": [
+    {
+      "name": "Left Non Overflow",
+      "crest_elevation": 172.2,
+      "crest_length": 142,
+      "discharge_coefficient": 1.705
+    },
+    {
+      "name": "Right Non Overflow",
+      "crest_elevation": 169.2,
+      "crest_length": 230,
+      "discharge_coefficient": 1.705
+    }],
+  "Embankments": [
+    {
+      "name": "Saddle dam",
+      "crest_elevation": 171,
+      "crest_length": 1152,
+      "discharge_coefficient": 1.705,
+      "breach_base_width": 60,
+      "failure_period": 2.83,
+      "breach_depth": 36,
+      "side_slope_H_in_1V": 1,
+      "include_lateral_breach": true,
+      "lateral_breach_direction": "mono",
+      "lateral_breach_base_width": 920,
+      "lateral_breach_depth": 16,
+      "lateral_breach_erosion_rate": 45.74,
+      "breach_failure_elevation": 171.3,
+      "lake_hydraulic_grade_shift": 0.1,
+      "Piping_failure_elevation": 154.0
+    },
+    {
+      "name": "South saddle dam",
+      "crest_elevation": 171.0,
+      "crest_length": 2044,
+      "discharge_coefficient": 1.705,
+      "breach_base_width": 1400,
+      "lake_hydraulic_grade_shift": 0.4
+    },
+    {
+      "name": "North saddle dam",
+      "crest_elevation": 171.0,
+      "crest_length": 1400,
+      "discharge_coefficient": 1.705,
+      "breach_base_width": 1500,
+      "lake_hydraulic_grade_shift": 0.4
+    }],
+  "Spillway": {
+	"name": "Spillway",
+    "discharge_coefficient": 1.705,
+    "crest_elevation": 154.0,
+    "crest_length": 504,
+    "spillway_rating_file": "dam_structure/Spillway_Rating.csv",
+	"breach_base_width": 162,
+	"failure_period": 0.167,
+	"breach_depth": 39,
+	"side_slope_H_in_1V": 0.0,
+	"breach_failure_elevation": 174.35
+  },
+  "storage_file": "dam_structure/Lake_Storage.csv"
+}

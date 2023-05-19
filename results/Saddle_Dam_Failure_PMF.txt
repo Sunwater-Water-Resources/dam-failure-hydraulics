@@ -1,0 +1,91 @@
+---------------------------------------------------------
+Simulating a dam failure using level-pool routing method
+Scripting created by Sunwater: December 2022
+Author: Richard Sharpe | richard.sharpe@sunwater.com.au
+---------------------------------------------------------
+!!!!
+Event name: PMF with saddle dam failure
+!!!!
+
+
+!!!!!
+Running simulation for: PMF with saddle dam failure
+!!!!!
+
+Include                                                yes
+Simulation_name                PMF with saddle dam failure
+Situation                                            flood
+Failure_structure                               Saddle dam
+Failure_type                                        breach
+Failure_elevation                                      NaN
+Inflow_file                             events/Inflows.csv
+Inflow_id                                              PMF
+Output_name             results/Saddle_Dam_Failure_PMF.csv
+Dam_structure_file        dam_structure/Dam_structure.json
+Event_file            events/Failure_event_properties.json
+Show_plot                                               no
+Name: 2, dtype: object
+Importing the dam structure file:
+	dam_structure/Dam_structure.json
+Setting up embankment: Saddle dam
+{'name': 'Saddle dam', 'crest_elevation': 171, 'crest_length': 1152, 'discharge_coefficient': 1.705, 'breach_base_width': 60, 'failure_period': 2.83, 'breach_depth': 36, 'side_slope_H_in_1V': 1, 'include_lateral_breach': True, 'lateral_breach_direction': 'mono', 'lateral_breach_base_width': 920, 'lateral_breach_depth': 16, 'lateral_breach_erosion_rate': 45.74, 'breach_failure_elevation': 171.3, 'lake_hydraulic_grade_shift': 0.1, 'Piping_failure_elevation': 154.0}
+Setting up embankment: South saddle dam
+{'name': 'South saddle dam', 'crest_elevation': 171.0, 'crest_length': 2044, 'discharge_coefficient': 1.705, 'breach_base_width': 1400, 'lake_hydraulic_grade_shift': 0.4}
+Setting up embankment: North saddle dam
+{'name': 'North saddle dam', 'crest_elevation': 171.0, 'crest_length': 1400, 'discharge_coefficient': 1.705, 'breach_base_width': 1500, 'lake_hydraulic_grade_shift': 0.4}
+Setting up monolith: Left Non Overflow
+{'name': 'Left Non Overflow', 'crest_elevation': 172.2, 'crest_length': 142, 'discharge_coefficient': 1.705}
+Setting up monolith: Right Non Overflow
+{'name': 'Right Non Overflow', 'crest_elevation': 169.2, 'crest_length': 230, 'discharge_coefficient': 1.705}
+Importing the dam storage curve:
+	dam_structure/Lake_Storage.csv
+Setting up the spillway...
+Importing spillway rating file:
+	dam_structure/Spillway_Rating.csv
+Importing the event file:
+	events/Failure_event_properties.json
+Solution method: optimise
+Importing inflow file using column PMF:
+	events/Inflows.csv
+Searching for embankment to apply failure: Saddle dam
+
+!!!
+Lowering embankment Saddle dam by 0.1 m to account for lake hydrodynamics (hydraulic gradient)
+!!!
+
+{'name': 'Saddle dam', 'crest_elevation': 170.9, 'crest_length': 1152, 'discharge_coefficient': 1.705, 'breach_base_width': 60, 'failure_period': 2.83, 'breach_depth': 36, 'side_slope_H_in_1V': 1, 'include_lateral_breach': True, 'lateral_breach_direction': 'mono', 'lateral_breach_base_width': 920, 'lateral_breach_depth': 16, 'lateral_breach_erosion_rate': 45.74, 'breach_failure_elevation': 171.3, 'lake_hydraulic_grade_shift': 0.1, 'Piping_failure_elevation': 154.0}
+
+Setting breach embankment for Saddle dam of type: breach
+Breach initiation elevation: 171.3 m AHD
+Vertical shift in initiation level: 0.1 m
+Final piping initiation elevation: 171.20000000000002 m AHD
+
+!!!
+Lowering embankment South saddle dam by 0.4 m to account for lake hydrodynamics (hydraulic gradient)
+!!!
+
+{'name': 'South saddle dam', 'crest_elevation': 170.6, 'crest_length': 2044, 'discharge_coefficient': 1.705, 'breach_base_width': 1400, 'lake_hydraulic_grade_shift': 0.4}
+
+!!!
+Lowering embankment North saddle dam by 0.4 m to account for lake hydrodynamics (hydraulic gradient)
+!!!
+
+{'name': 'North saddle dam', 'crest_elevation': 170.6, 'crest_length': 1400, 'discharge_coefficient': 1.705, 'breach_base_width': 1500, 'lake_hydraulic_grade_shift': 0.4}
+
+Doing the computation...
+
+!!!!
+Main breach Saddle dam initiated at a level of 171.25 m AHD at 116.23 hours
+Main breach Saddle dam fully formed at a level of 171.54 m AHD at 119.07 hours
+Main breach Saddle dam final elevation of 134.9 m AHD and width of 60 m
+!!!!
+Starting lateral breach for Saddle dam at time of 119.07 hours
+Lateral breach direction is: mono
+Lateral erosion for Saddle dam has reached the maximum width of 920 m at 139.24 hours
+!!!!
+
+Writing results to file:
+	results/Saddle_Dam_Failure_PMF.csv
+Writing the plot to file:
+	results/Saddle_Dam_Failure_PMF.png
+Log file: results/Saddle_Dam_Failure_Sunny_Day.txt
