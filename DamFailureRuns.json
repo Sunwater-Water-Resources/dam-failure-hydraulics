@@ -1,0 +1,12 @@
+{
+  "Simulations": [
+    {
+// Test model used as an example
+      "name": "test_model",
+      "working_folder": "Test_Model",
+      "simulation_list": "Simulation_List.xlsx",
+	  "include": true,
+	  "write_max_flows": true,
+	  "max_flow_filename": "results/max_flows.csv"
+    }]
+}

@@ -37,7 +37,7 @@ class FailureEvent:
         sys.stdout = Logger(log_filename)
         header = """---------------------------------------------------------
 Simulating a dam failure using level-pool routing method
-Scripting created by Sunwater: December 2022
+Scripting created by Sunwater: May 2023
 Author: Richard Sharpe | richard.sharpe@sunwater.com.au
 ---------------------------------------------------------"""
         header = '{}\n!!!!\nEvent name: {}\n!!!!\n'.format(header, name)
@@ -61,6 +61,7 @@ Author: Richard Sharpe | richard.sharpe@sunwater.com.au
         self.all_walls = []
         self.solution_method = 'forward_step'
         self.max_flow = 0.0
+        self.max_level = 0.0
 
     def log_message(self, message):
         print(message)
@@ -72,9 +73,12 @@ Author: Richard Sharpe | richard.sharpe@sunwater.com.au
         # open the config file and get contents
         print('Importing the event file:', end='\n\t')
         print(config_file)
-        f = open(config_file)
-        self.event_properties = json.load(f)
-        f.close()
+        # f = open(config_file)
+        with open(config_file, 'r') as jsonfile:
+            jsondata = ''.join(line for line in jsonfile if not line.startswith('//'))
+            self.event_properties = json.loads(jsondata)
+        #self.event_properties = json.load(f)
+        # f.close()
         start = self.event_properties['start_time']
         stop = self.event_properties['end_time']
         step = self.event_properties['timestep'] / 3600  # convert from seconds to hours
@@ -93,9 +97,12 @@ Author: Richard Sharpe | richard.sharpe@sunwater.com.au
         # open the config file and get contents
         print('Importing the dam structure file:', end='\n\t')
         print(structure_file)
-        f = open(structure_file)
-        self.dam_structure = json.load(f)
-        f.close()
+        # f = open(structure_file)
+        with open(structure_file, 'r') as jsonfile:
+            jsondata = ''.join(line for line in jsonfile if not line.startswith('//'))
+            self.dam_structure = json.loads(jsondata)
+        # self.dam_structure = json.load(f)
+        # f.close()
         # Collect the embankments
         embankments = self.dam_structure['Embankments']
         for embankment in embankments:
@@ -360,6 +367,8 @@ Author: Richard Sharpe | richard.sharpe@sunwater.com.au
             initial_outflow = outflow
             initial_inflow = inflow
             initial_level = lake_level
+            if lake_level > self.max_level:
+                self.max_level = lake_level
             if outflow > self.max_flow:
                 self.max_flow = outflow
 
@@ -443,6 +452,7 @@ class Embankment:
         self.lateral_breach_width = 0.0
         self.lateral_breach_ceased = False
         self.previous_time = 0.0
+        self.prior_time = 0.0  # used in piping failure formation with optimise method
         self.has_shift = False
         self.timestep = 0.0
         self.piping_soffit = 0.0
@@ -527,7 +537,11 @@ class Embankment:
 
         # get the soffit of the breach
         breach_depth = self.properties['breach_depth'] * time_scaling
-        delta_depth = (self.timestep / self.properties['failure_period']) * self.properties['breach_depth']
+        # print('time: {} | previous time: {}'.format(time, self.prior_time))
+        if time > self.prior_time:  # this skips iterations done on the same timestep
+            delta_depth = (self.timestep / self.properties['failure_period']) * self.properties['breach_depth']
+        else:
+            delta_depth = 0.0
         # assume that the soffit erodes at the same rate as the invert
         # i.e. vertical expansion is twice as fast as horizontal expansion
         piping_soffit = self.piping_soffit + delta_depth  # /2 if vertical = horizontal rate
@@ -581,20 +595,23 @@ class Embankment:
             side_area = 0.5 * self.properties['side_slope_H_in_1V'] * breach_depth * breach_depth
             breach_area = centre_area + side_area * 2  # assuming trapezoidal pipe shape similar to overtopping breach
             if lake_level > self.piping_soffit:
-                print('Time: {} | Orifice flow | Lake level: {} m AHD | Pipe invert: {} m AHD'.format(
-                    time,
-                    np.around(lake_level, decimals=2),
-                    np.around(self.piping_invert, decimals=2)))
+                if time > self.prior_time:
+                    print('Time: {} | Orifice flow | Lake level: {} m AHD | Pipe invert: {} m AHD'.format(
+                        time,
+                        np.around(lake_level, decimals=2),
+                        np.around(self.piping_invert, decimals=2)))
                 main_flow = self.orifice_flow(area=breach_area, head=(lake_level - breach_centre))
             elif lake_level > self.piping_invert:
-                print('Time: {} | Weir flow | Lake level: {} m AHD | Pipe invert: {} m AHD'.format(
-                    time,
-                    np.around(lake_level, decimals=2),
-                    np.around(self.piping_invert, decimals=2)))
+                if time > self.prior_time:
+                    print('Time: {} | Weir flow | Lake level: {} m AHD | Pipe invert: {} m AHD'.format(
+                        time,
+                        np.around(lake_level, decimals=2),
+                        np.around(self.piping_invert, decimals=2)))
                 main_flow = self.trapezoid_weir_flow(width=breach_width, head=(lake_level - self.piping_invert))
             else:
                 main_flow = 0.0
             # !!!!!!!!!!!!!!!!!!!!!
+            self.prior_time = time
         return main_flow
 
     def orifice_flow(self, area, head):
@@ -661,7 +678,7 @@ class Embankment:
 
     def check_failed(self, lake_level, time):
         if not self.is_breached and self.has_breach:
-            if lake_level > self.initiate_breach_level:
+            if lake_level >= self.initiate_breach_level:
                 self.is_breached = True
                 self.time_of_main_breach = time
                 print('\n!!!!\nMain breach {} initiated at a level of {} m AHD at {} hours'.
