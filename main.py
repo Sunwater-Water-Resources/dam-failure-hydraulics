@@ -38,13 +38,14 @@ def run_dam_failure_model(dam_failure_run):
     all_max_flows_df = pd.DataFrame()
     for run_id, simulation in simulation_df.iterrows():
         if simulation['Include'] == 'yes':
-            max_flow, max_level = run_failure_simulation(simulation, folder)
+            max_flow, max_level, max_volume = run_failure_simulation(simulation, folder)
             # output a list of the maximum flows and lake levels for each simulation
             if dam_failure_run['write_max_flows']:
                 max_flow_dict = {'Simulation': str(simulation['Simulation_name']),
                                  'Failure Elevation': str(simulation['Failure_elevation']),
-                                 'Maximum Flow': max_flow,
-                                 'Maximum Level': max_level}
+                                 'Maximum Flow (m³/s)': max_flow,
+                                 'Maximum Level (m AHD)': max_level,
+                                 'Outflow volume at peak (ML)': max_volume}
                 max_flows_df = pd.DataFrame.from_dict([max_flow_dict])
                 all_max_flows_df = pd.concat([all_max_flows_df, max_flows_df], axis=0)
                 max_flow_filename = os.path.join(dam_failure_run['working_folder'], dam_failure_run['max_flow_filename'])
@@ -101,8 +102,10 @@ def run_failure_simulation(simulation, folder):
                             save_plot=True)
     max_flow = dam_failure.max_flow
     max_level = dam_failure.max_level
+    max_volume = dam_failure.max_flow_volume
+
     del dam_failure
-    return max_flow, max_level
+    return max_flow, max_level, max_volume
 
 
 if __name__ == "__main__":

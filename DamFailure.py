@@ -38,7 +38,7 @@ class FailureEvent:
         header = """---------------------------------------------------------
 Simulating a dam failure using level-pool routing method
 Scripting created by Sunwater: May 2023
-Author: Richard Sharpe | richard.sharpe@sunwater.com.au
+Code available at: https://github.com/Sunwater-Water-Resources/dam-failure-hydraulics
 ---------------------------------------------------------"""
         header = '{}\n!!!!\nEvent name: {}\n!!!!\n'.format(header, name)
         print(header)
@@ -59,9 +59,10 @@ Author: Richard Sharpe | richard.sharpe@sunwater.com.au
         self.timestep = 0.0
         self.failure_type = 'none'
         self.all_walls = []
-        self.solution_method = 'forward_step'
+        self.solution_method = 'direct'  # can be 'direct' or 'implicit'
         self.max_flow = 0.0
         self.max_level = 0.0
+        self.max_flow_volume = 0.0
 
     def log_message(self, message):
         print(message)
@@ -301,6 +302,7 @@ Author: Richard Sharpe | richard.sharpe@sunwater.com.au
         initial_delta_flow = initial_inflow - initial_outflow
         # Do the main computation
         prior_delta_storage = 0.0
+        flow_volume = 0.0
         for time, step in self.compute_df.iloc[1:].iterrows():
 
             # 1. get the timestep... strictly, this should be the previous
@@ -318,7 +320,7 @@ Author: Richard Sharpe | richard.sharpe@sunwater.com.au
             # lake_level_0 = self.get_lake_level(initial_storage + delta_storage / 2)
             level_tolerance = 10
             lake_level_1 = self.get_lake_level(initial_storage + delta_storage * level_tolerance)
-            if (initial_level - lake_level_1)**2 > 0.001 and self.solution_method == 'optimise':
+            if (initial_level - lake_level_1)**2 > 0.001 and self.solution_method == 'implicit':
                 try:
                     # print('initial lake level: {} | upper bound {}'.format(initial_level, lake_level_1))
                     root = optimize.root_scalar(self.lake_level_optimisation,
@@ -361,16 +363,21 @@ Author: Richard Sharpe | richard.sharpe@sunwater.com.au
             computation['Total Outflow'].append(outflow)
             computation['Mass Error (ML)'].append(mass_error)
 
+            # Get the volume that has flowed through the dam
+            flow_volume = flow_volume + 0.5 * (initial_outflow + outflow) * self.timestep * 3600 / 1000  # Megalitres
+
             # 5. Store values to use in next timestep
             initial_time = time
             initial_storage = volume
             initial_outflow = outflow
             initial_inflow = inflow
             initial_level = lake_level
+
             if lake_level > self.max_level:
                 self.max_level = lake_level
             if outflow > self.max_flow:
                 self.max_flow = outflow
+                self.max_flow_volume = flow_volume
 
         # Store the results
         computation_df = pd.DataFrame(computation).set_index('Time')
@@ -452,7 +459,7 @@ class Embankment:
         self.lateral_breach_width = 0.0
         self.lateral_breach_ceased = False
         self.previous_time = 0.0
-        self.prior_time = 0.0  # used in piping failure formation with optimise method
+        self.prior_time = 0.0  # used in piping failure formation with implicit method
         self.has_shift = False
         self.timestep = 0.0
         self.piping_soffit = 0.0

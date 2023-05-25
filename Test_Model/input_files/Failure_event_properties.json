@@ -12,10 +12,10 @@
   "initial_lake_level": 154.0,
 //
 // There are two solution methods:
-//    optimise - uses a solver for an implicit solution of the outflow
-//    forward_step - is a direct solution of the outflow
+//    implicit - uses a solver for an implicit solution of the outflow
+//    direct - is a direct solution of the outflow
 // With a small timestep the solutions produce a similar result.
-// Forward_step is recommended as optimise has not been tested fully
+// direct is recommended as implicit has not been tested fully
 //
-  "solution_method": "optimise"
+  "solution_method": "direct"
 }
