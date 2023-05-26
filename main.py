@@ -75,16 +75,23 @@ def run_failure_simulation(simulation, folder):
                               column_name=simulation['Inflow_id'])
 
     # Set the part of the dam that will fail
-    if not pd.isnull(simulation['Failure_elevation']):
-        failure_elevation = simulation['Failure_elevation']
-    else:
-        failure_elevation = -999
+    failure_elevation = -999
+    if 'Failure_elevation' in simulation:
+        if not pd.isnull(simulation['Failure_elevation']):
+            failure_elevation = simulation['Failure_elevation']
+
+    erosion_rate_id = ''
+    if 'Erosion_rate_ID' in simulation:
+        if not pd.isnull(simulation['Erosion_rate_ID']):
+            erosion_rate_id = simulation['Erosion_rate_ID']
+
     failure_walls = simulation['Failure_structure'].split(',')
     for wall in failure_walls:
         dam_failure.set_failure(wall_names=wall,
                                 type=simulation['Failure_type'],
                                 situation=simulation['Situation'],
-                                failure_elevation=failure_elevation)
+                                failure_elevation=failure_elevation,
+                                erosion_rate_id=erosion_rate_id)
 
     # Do the dam failure analysis
     dam_failure.compute_event()

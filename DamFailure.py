@@ -134,13 +134,30 @@ Code available at: https://github.com/Sunwater-Water-Resources/dam-failure-hydra
         self.spillway.import_dict(spillway_dict)
         self.spillway.name = name
 
-    def set_failure(self, wall_names, type='breach', situation='sunny day', failure_elevation=-999):
+    def set_failure(self, wall_names, type='breach', situation='sunny day', failure_elevation=-999, erosion_rate_id=''):
         self.failure_type = type
         if 'Spillway' in wall_names:
             self.failure_type = 'none'
         # apply any failures to embankments and monoliths
         print('Searching for embankment to apply failure: {}'.format(wall_names))
         for embankment in self.embankments:
+            # Get the lateral erosion rate
+            if 'include_lateral_breach' in embankment.properties and embankment.properties['include_lateral_breach']:
+                if not erosion_rate_id == '' and 'lateral_erosion_rate_list' in embankment.properties:
+                    print('{}: the ID for lateral erosion rates: {}'.format(embankment.name, erosion_rate_id))
+                    erosion_rate_list = embankment.properties['lateral_erosion_rate_list']
+                    print('found ID list:')
+                    print(erosion_rate_list)
+                    if erosion_rate_id in erosion_rate_list:
+                        erosion_rate = erosion_rate_list[erosion_rate_id]
+                        print('Found erosion rate of {} m/hr for ID {}'.format(erosion_rate, erosion_rate_id))
+                        embankment.properties['lateral_breach_erosion_rate'] = erosion_rate
+                    else:
+                        print('erosion rate id not found')
+
+                    print('Lateral breach erosion rate: {}'.format(embankment.properties['lateral_breach_erosion_rate']))
+
+            # Apply vertical shifts for hydraulic gradient (but not for sunny day events)
             if situation == 'flood':
                 embankment.apply_shift()
             if embankment.has_shift:
@@ -320,7 +337,7 @@ Code available at: https://github.com/Sunwater-Water-Resources/dam-failure-hydra
             # lake_level_0 = self.get_lake_level(initial_storage + delta_storage / 2)
             level_tolerance = 10
             lake_level_1 = self.get_lake_level(initial_storage + delta_storage * level_tolerance)
-            if (initial_level - lake_level_1)**2 > 0.001 and self.solution_method == 'implicit':
+            if (initial_level - lake_level_1)**2 > 0.0001 and self.solution_method == 'implicit':
                 try:
                     # print('initial lake level: {} | upper bound {}'.format(initial_level, lake_level_1))
                     root = optimize.root_scalar(self.lake_level_optimisation,
@@ -565,14 +582,22 @@ class Embankment:
         piping_invert_limit = self.properties['crest_elevation'] - self.properties['breach_depth']
         if piping_invert <= piping_invert_limit:
             self.piping_invert = piping_invert_limit
-            # initiate the lateral breach if the pipe invert hits the bottom
-            lateral_breach_invert = self.properties['crest_elevation'] - self.properties['lateral_breach_depth']
-            lateral_check = piping_soffit >= lateral_breach_invert
-            if not self.is_lateral_breach and self.properties['include_lateral_breach'] and lateral_check:
-                print('The pipe invert has reached the full breach depth at {} m AHD'.format(self.piping_invert))
-                print('Initiating the lateral breach mechanism at time {}'.format(time))
-                self.time_of_lateral_breach = time
-                self.is_lateral_breach = True
+
+            # initiate the lateral breach if the pipe breach is fully formed
+            if 'include_lateral_breach' in self.properties:
+                if self.properties['include_lateral_breach']:
+                    lateral_breach_invert = self.properties['crest_elevation'] - self.properties['lateral_breach_depth']
+                    lateral_check_1 = (piping_soffit > lateral_breach_invert)
+                    lateral_check_2 = (time_since_main_breach > self.properties['failure_period'])
+                    if not self.is_lateral_breach and lateral_check_1 and lateral_check_2:
+                        print('The pipe breach is fully formed at time {} hours'.format(time))
+                        print('The pipe breach width is {} m'.format(breach_width))
+                        print('The pipe breach invert is {} m AHD'.format(self.piping_invert))
+                        print('The pipe breach soffit is {} m AHD'.format(self.piping_soffit))
+                        print('Initiating the lateral breach mechanism at erosion rate of {} m/hr'
+                              .format(self.properties['lateral_breach_erosion_rate']))
+                        self.time_of_lateral_breach = time
+                        self.is_lateral_breach = True
         else:
             self.piping_invert = piping_invert
 
@@ -609,11 +634,11 @@ class Embankment:
                         np.around(self.piping_invert, decimals=2)))
                 main_flow = self.orifice_flow(area=breach_area, head=(lake_level - breach_centre))
             elif lake_level > self.piping_invert:
-                if time > self.prior_time:
-                    print('Time: {} | Weir flow | Lake level: {} m AHD | Pipe invert: {} m AHD'.format(
-                        time,
-                        np.around(lake_level, decimals=2),
-                        np.around(self.piping_invert, decimals=2)))
+                # if time > self.prior_time:
+                    # print('Time: {} | Weir flow | Lake level: {} m AHD | Pipe invert: {} m AHD'.format(
+                    #     time,
+                    #     np.around(lake_level, decimals=2),
+                    #     np.around(self.piping_invert, decimals=2)))
                 main_flow = self.trapezoid_weir_flow(width=breach_width, head=(lake_level - self.piping_invert))
             else:
                 main_flow = 0.0
@@ -692,7 +717,7 @@ class Embankment:
                       format(self.name, np.around(lake_level, decimals=2), np.around(time, decimals=2)))
 
         elif not self.has_breach and self.has_piping and not self.is_piping:
-            if lake_level >= self.initiate_breach_level or (lake_level - self.initiate_breach_level)**2 < 0.001:
+            if lake_level >= self.initiate_breach_level:  # or (lake_level - self.initiate_breach_level)**2 < 0.001:
                 self.is_piping = True
                 self.time_of_main_breach = self.previous_time
                 print('\n!!!!\nPiping failure initiation level: {} m AHD'.format(self.initiate_breach_level))
@@ -700,39 +725,7 @@ class Embankment:
                     self.name, np.around(lake_level, decimals=2), np.around(self.time_of_main_breach, decimals=2)))
         self.previous_time = time
 
-    def lateral_breach_flow_1(self, lake_level, time, Cd=-1.0):
-        Cd_base = Cd
-        breach_invert = self.properties['crest_elevation'] - self.properties['lateral_breach_depth']
-
-        if Cd_base < 0.0:
-            Cd_base = 3.1 / 1.811  # imperial to metric conversion
-
-        if not self.lateral_breach_ceased:
-            erosion = self.timestep * self.properties['lateral_breach_erosion_rate']  # in m/hr
-            if self.properties['lateral_breach_direction'] == 'bi':
-                erosion = erosion * 2
-
-            if lake_level > breach_invert:
-                self.lateral_breach_width += erosion
-
-            if self.lateral_breach_width >= self.properties['lateral_breach_base_width']:
-                self.lateral_breach_width = self.properties['lateral_breach_base_width']
-                print('Lateral erosion for {} has reached the maximum width of {} m at {} hours\n!!!!'.
-                       format(self.name, self.lateral_breach_width, np.around(time, decimals=2)))
-                self.lateral_breach_ceased = True
-
-        L = self.lateral_breach_width
-        H = lake_level - breach_invert
-
-        if H > 0.001 and L > 0.001:
-            return Cd_base * L * math.pow(H, 1.5)
-        else:
-            return 0.0
-
     def lateral_breach_flow(self, lake_level, time, Cd=-1.0):
-        # Strickly, lateral erosion should only occur when lake level is
-        # above the breach invert level. Tried doing this in lateral_breach_flow_1
-        # but was overestimating for some reason.
         Cd_base = Cd
         if Cd_base < 0.0:
             Cd_base = 3.1 / 1.811  # imperial to metric conversion
