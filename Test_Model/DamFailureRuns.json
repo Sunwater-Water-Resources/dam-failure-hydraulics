@@ -3,7 +3,7 @@
     {
 // Test model used as an example
       "name": "test_model",
-      "working_folder": "Test_Model",
+      "working_folder": "",
       "simulation_list": "Simulation_List.xlsx",
 	  "include": true,
 	  "write_max_flows": true,
