@@ -45,3 +45,6 @@ The model produces five output files:
 - A table of dischrages for each structure (*_banks.csv*)
 - A plot of the results (*.png*)
 - (Optional) a summary of the maximum flows and levels of the events in the simulation list. This file is managed from the *dam failure runs* file.
+
+## Embankment secondary breach
+The model has been set up with an option to include a secondary breach after the main breach has fully formed. The secondary breach progressses in a lateral direction only. The lateral progression can be in only one direction (i.e. the main breach is on one side of the embankment) or in two directions (i.e. the main breach forms in the centre of the embankment). The secondary breach parameters are included in the *dam structure file*. To include the secondary breach, the *include_lateral_breach* switch must be set to true. The progression directions are set as either *mono* for one or *bi* for two using the *lateral_breach_direction* switch. An erosion rate needs to be provided using the *lateral_breach_erosion_rate* switch or by providing a list of rates for different events using the *lateral_erosion_rate_list* switch.
